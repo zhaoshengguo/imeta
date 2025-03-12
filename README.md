@@ -3,6 +3,7 @@ iMeta
 Leveraging Core Enzyme Structures for Microbiota Targeted Functional Regulation: Urease as an Example
 
 Shengguo Zhao1#, Huiyue Zhong1#, Yue He1#, Xiaojiao Li1, Li Zhu3, Zhanbo Xiong1, Xiaoyin Zhang1, Nan Zheng1, Diego P Morgavi2, Jiaqi Wang1*
+
 1Key State Laboratory of Animal Nutrition and Feeding, Institute of Animal Sciences, Chinese Academy of Agricultural Sciences, Beijing 100193, China. 
 2Université Clermont Auvergne, INRAE, VetAgro Sup, UMR Herbivores, Saint-Genès-Champanelle F-63122, France
 3Electron Microscopy Centre, Lanzhou University, Lanzhou 730000, China
