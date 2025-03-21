@@ -1,0 +1,30 @@
+
+### MAG257 generation and annotation
+
+# Assembling and binning
+for i in *; do mkdir $i/cleandata; done
+ls -l | awk -F ' ' '{print $9}' | sed '/^$/d' | parallel -j 10 --xapply " trim_galore --paired --stringency 3 -a GATCGGAAGAGCACACGTCTGAACTCCAGTCACCCAACACAATCTCGTATGCCGTCTTCTGCTTG -a2 AGATCGGAAGAGCGTCGTGTAGGGAAAGA -o {1}/cleandata {1}/rawdata/1.fq.gz {1}/rawdata/2.fq.gz "
+ls -l | awk -F ' ' '{print $9}' | sed '/^$/d' | parallel -j 3 --xapply "megahit -1 {1}/cleandata/*1.fq.gz -2 {1}/cleandata/*2.fq.gz -t 35 -o {1}/assemble" 
+ls -l | awk -F ' '  '{print $9}' | sed '/^$/d' | parallel -j 3 --xapply " gunzip -c {1}/cleandata/*1.fq.gz > {1}/cleandata/reads_1.fastq; gunzip -c {1}/cleandata/*2.fq.gz > {1}/cleandata/reads_2.fastq; metawrap binning -a {1}/assemble/final.contigs.fa -o {1}/binning --metabat2 --concoct -t 30 -m 150 {1}/cleandata/reads_1.fastq  {1}/cleandata/reads_2.fastq ; rm -rf {1}/cleandata/reads_1.fastq {1}/cleandata/reads_2.fastq "
+
+# Screening, quality evaluation
+for genome in allbins/*.fa; do blastn -query core_ureC.fa -subject "$genome" -out "${genome%.fa}_results.txt" -outfmt 6; done
+checkm lineage_wf -x fa -t 10 MAG257/seqs/MAG257.fa  MAG257/checkm  -f MAG257/checkm/checkm.txt
+
+# Taxa and function annotation
+gtdbtk classify_wf --genome_dir MAG257/seqs/ --out_dir MAG257/binning/gtdbtk --extension fa --cpus 30 --skip_ani_screen
+prodigal -i MAG257/seqs/MAG257.fa -o MAG257/cds/genes.gff -d MAG257/cds/cds.fa -a MAG257/cds/protein.fa -f gff -c
+emapper.py -i MAG257/cds/protein.fa --output MAG257/eggNOG -m diamond --cpu 30 --tax_scope Bacteria
+
+
+
+
+### MAG257 quantification in different animal species
+
+# metawrap quant
+
+ls -l | awk -F ' ' '{print $9}' | sed '/^$/d' | parallel -j 10 --xapply " trim_galore --paired --stringency 3 -a GATCGGAAGAGCACACGTCTGAACTCCAGTCACCCAACACAATCTCGTATGCCGTCTTCTGCTTG -a2 AGATCGGAAGAGCGTCGTGTAGGGAAAGA -o {1}/cleandata {1}/rawdata/1.fq.gz {1}/rawdata/2.fq.gz "
+ls -l | awk -F ' ' '{print $9}' | sed '/^$/d' | parallel -j 3 --xapply "megahit -1 {1}/cleandata/*1.fq.gz -2 {1}/cleandata/*2.fq.gz -t 35 -o {1}/assemble" 
+cat */assemble/final.contigs.fa MAG257/seqs/MAG257.fa > all_contigs.fa
+ls -l | awk -F ' ' '{print $9}' | sed '/^$/d' | parallel -j 10 --xapply "gunzip -c {1}/cleandata/1.fq.gz > {1}/cleandata/reads_1.fastq; gunzip -c {1}/cleandata/2.fq.gz > {1}/cleandata/reads_2.fastq "
+metawrap quant_bins -t 40 -o MAG257.quant/ -b MAG257/seqs/ -a all_contigs.fa cleandata/*.fastq
