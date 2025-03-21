@@ -1,0 +1,22 @@
+
+### ureC gene OTU table generation in QIIME 1.9
+
+
+# OTU generation
+pick_otus.py -i seqs.fna -o pick_otus/usearch_picked_otus --word_length 64 --otu_picking_method usearch --db_filepath urec_FL.fas
+mkdir pick_otus/rep_set
+pick_rep_set.py -i pick_otus/usearch_picked_otus/seqs_otus.txt -f seqs.fna -l pick_otus/rep_set/seqs_rep_set.log -o pick_otus/rep_set/seqs_rep_set.fasta --rep_set_picking_method first --sort_by otu
+
+# Taxanomy
+graftM graft --forward pick_otus/rep_set/seqs_rep_set.fasta --graftm_package ureC.gpkg/ --output_directory ureC.graftm
+
+# Phylogenetic tree
+parallel_align_seqs_pynast.py -i pick_otus/rep_set/seqs_rep_set.fasta -o pick_otus/pynast_aligned_seqs -T --jobs_to_start 4 --template_fp ref_ureC_align.fasta --pairwise_alignment_method uclust --min_percent_id 50.0 --min_length 100
+filter_alignment.py  -i pick_otus/pynast_aligned_seqs/seqs_rep_set_aligned.fasta -o pick_otus/aligned_seqs  --allowed_gap_frac 0.999999 --threshold 5
+make_phylogeny.py -i pick_otus/aligned_seqs/seqs_rep_set_aligned_pfiltered.fasta -o pick_otus/rep_set.tre --root_method tree_method_default --tree_method fasttree
+
+# OTU table generation
+make_otu_table.py -i pick_otus/usearch_picked_otus/seqs_otus.txt -t ureC.graftm/seqs_rep_set/seqs_rep_set_read_tax.tsv -o pick_otus/otu_table.biom
+biom summarize-table -i  pick_otus/otu_table.biom  -o pick_otus/otu_table_summary.txt
+biom convert -i pick_otus/otu_table.biom  o pick_otus/otu_table.txt --to-tsv --header-key taxonomy --output-metadata-id "ConsensusLineage" --table-type="OTU table"
+
